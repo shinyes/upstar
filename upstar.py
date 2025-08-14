@@ -19,7 +19,9 @@ class Upstar(Starlette):
 
     def use(self, middleware) -> "Upstar":
         """
-        支持直接传入函数，自动包装为 Middleware
+        支持直接传入函数，自动包装为 Middleware。
+
+        此外，要记得可以为 request.state.名字 进行赋值，以便于在后续处理这个request的过程中使用这个值
         ```python
         # 示例中间件函数
         async def middleware_A(request, call_next):
