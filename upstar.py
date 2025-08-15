@@ -33,10 +33,6 @@ class Upstar(Starlette):
             return response # 结束中间件处理
         ```
         """
-        #
-        # 示例中间件函数
-        # ```py
-
         if callable(middleware):
             self.add_middleware(BaseHTTPMiddleware, dispatch=middleware)
         return self

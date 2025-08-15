@@ -58,8 +58,9 @@ app = (
         )
         .get("world", lambda request: Response("World!")),
     )
+    .get("ping", lambda request: JSONResponse({"message": "pong"}))
 )
 
 print_routes(app)
 if __name__ == "__main__":
-    uvicorn.run("test:app", reload=True, host="0.0.0.0", port=8000)
+    uvicorn.run("demo:app", reload=True, host="0.0.0.0", port=8000)
