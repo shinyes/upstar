@@ -88,3 +88,16 @@ class Upstar(Starlette):
             )
         )
         return self
+
+    def websocket(self, path: str, handler: Callable, middleware=None) -> "Upstar":
+        if callable(middleware):
+            middleware = Middleware(BaseHTTPMiddleware, dispatch=middleware)
+        self.routes.append(
+            Route(
+                f"/{path}",
+                handler,
+                methods=["WEBSOCKET"],
+                middleware=[middleware] if middleware else [],
+            )
+        )
+        return self
