@@ -1,7 +1,11 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "upstar"
 version = "0.1.0"
-description = "Add your description here"
+description = "一个为starlette增加链式添加路由与中间件的包"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

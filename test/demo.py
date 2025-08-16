@@ -1,7 +1,13 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from upstar import Upstar
+
+
 from starlette.responses import JSONResponse, Response
 from print_routes import print_routes
 import uvicorn
+
 
 
 # 示例中间件函数

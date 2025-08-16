@@ -1,6 +1,3 @@
-from starlette.routing import Route, Mount
-
-
 def print_routes(app, prefix=""):
     def _print(app, prefix, level):
         indent = "  " * level
