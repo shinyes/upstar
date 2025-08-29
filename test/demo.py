@@ -1,20 +1,26 @@
+import time
+
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from upstar import Upstar
 
-
+from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from print_routes import print_routes
 import uvicorn
 
 
-
 # 示例中间件函数
-async def middleware_A(request, call_next):
+async def middleware_A(request: Request, call_next):
     print(f"[中间件A] {request.method} {request.url.path}")
+    time_a = time.perf_counter()
     response = await call_next(request)
-    print(f"[中间件A] Response status: {response.status_code}")
+    time_b = time.perf_counter()
+    print(
+        f"[中间件A] Response status: {response.status_code} 耗时: {time_b - time_a:.4f}秒"
+    )
     return response
 
 
@@ -39,9 +45,31 @@ async def middleware_D(request, call_next):
     return response
 
 
+# 中间件使用样例
+async def middleware_E(request: Request, call_next):
+    print(f"[中间件E] {request.method} {request.url.path}")
+    json_data = await request.json()
+    request.state._state.update(json_data)
+    print(f"[中间件E] Request state: {request.state._state}")
+    response = await call_next(request)
+    print(f"[中间件E] Response status: {response.status_code}")
+    return response
+
+
 app = (
     Upstar()
     .use(middleware_A)  # 全局中间件
+    .get(
+        "login",
+        lambda request: JSONResponse(
+            {
+                "msg": "登录成功",
+                "name": request.state.name,
+                "password": request.state.password,
+            }
+        ),
+        middleware_E,
+    )
     .group(
         "v1",
         Upstar()
@@ -64,7 +92,6 @@ app = (
         )
         .get("world", lambda request: Response("World!")),
     )
-    .get("ping", lambda request: JSONResponse({"message": "pong"}))
 )
 
 print_routes(app)
