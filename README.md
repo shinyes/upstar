@@ -1,5 +1,7 @@
 # Upstar——为 starlette 添加链式添加路由和中间件
 
+注意：中间件的作用范围与添加顺序无关，只与添加的作用范围有关，所以一般添加到某个作用范围的开头
+
 ## 使用样例
 ```py
 from upstar import Upstar
