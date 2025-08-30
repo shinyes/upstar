@@ -1,18 +1,13 @@
 import time
-
 import sys
 import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from upstar import Upstar
-
-from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
 from print_routes import print_routes
 import uvicorn
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+from upstar import Upstar, Request, JSONResponse, Response
 
-# 示例中间件函数
+
 async def middleware_A(request: Request, call_next):
     print(f"[中间件A] {request.method} {request.url.path}")
     time_a = time.perf_counter()
@@ -24,8 +19,11 @@ async def middleware_A(request: Request, call_next):
     return response
 
 
-async def middleware_B(request, call_next):
+async def middleware_B(request: Request, call_next):
     print(f"[中间件B] {request.method} {request.url.path}")
+    json_data = await request.json()
+    request.state._state.update(json_data)
+    print(f"[中间件B] Request state: {request.state._state}")
     response = await call_next(request)
     print(f"[中间件B] Response status: {response.status_code}")
     return response
@@ -45,12 +43,8 @@ async def middleware_D(request, call_next):
     return response
 
 
-# 中间件使用样例
-async def middleware_E(request: Request, call_next):
+async def middleware_E(request, call_next):
     print(f"[中间件E] {request.method} {request.url.path}")
-    json_data = await request.json()
-    request.state._state.update(json_data)
-    print(f"[中间件E] Request state: {request.state._state}")
     response = await call_next(request)
     print(f"[中间件E] Response status: {response.status_code}")
     return response
@@ -68,29 +62,23 @@ app = (
                 "password": request.state.password,
             }
         ),
-        middleware_E,
+        middleware_B,
     )
     .group(
-        "v1",
+        "g",
         Upstar()
-        .use(middleware_B)  # v1 组中间件
+        .use(middleware_C)  # v1 组中间件
+        .get("1", lambda request: JSONResponse({"message": "1!"}))
         .get(
-            "hello", lambda request: JSONResponse({"message": "Hello!"}), middleware_C
+            "2", lambda request: JSONResponse({"message": "2!"}), middleware_D
         )  # 路由中间件
-        .get("world", lambda request: JSONResponse({"message": "World!"})),
-    )
-    .group(
-        "v2",
-        Upstar()
-        .get("test", lambda request: Response("Test!"))
         .group(
             "nested",
             Upstar()
-            .use(middleware_D)  # 嵌套组中间件
-            .post("hello", lambda request: Response("Hello!"))
-            .post("world", lambda request: Response("World!")),
-        )
-        .get("world", lambda request: Response("World!")),
+            .use(middleware_E)  # 嵌套组中间件
+            .post("3", lambda request: Response("3!"))
+            .post("4", lambda request: Response("4!")),
+        ),
     )
 )
 

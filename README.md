@@ -1,26 +1,35 @@
 # Upstar——为 starlette 添加链式添加路由和中间件
 
-注意：中间件的作用范围与添加顺序无关，只与添加的作用范围有关，所以一般添加到某个作用范围的开头
+注意：
+- 中间件的作用范围与添加顺序无关，只与添加的作用范围有关，所以一般添加到某个作用范围的开头
 
 ## 使用样例
 ```py
-from upstar import Upstar
-from starlette.responses import JSONResponse, Response
+import time
+import sys
+import os
 from print_routes import print_routes
 import uvicorn
 
+from upstar import Upstar, Request, JSONResponse, Response
 
 
-# 示例中间件函数
-async def middleware_A(request, call_next):
+async def middleware_A(request: Request, call_next):
     print(f"[中间件A] {request.method} {request.url.path}")
+    time_a = time.perf_counter()
     response = await call_next(request)
-    print(f"[中间件A] Response status: {response.status_code}")
+    time_b = time.perf_counter()
+    print(
+        f"[中间件A] Response status: {response.status_code} 耗时: {time_b - time_a:.4f}秒"
+    )
     return response
 
 
-async def middleware_B(request, call_next):
+async def middleware_B(request: Request, call_next):
     print(f"[中间件B] {request.method} {request.url.path}")
+    json_data = await request.json()
+    request.state._state.update(json_data)
+    print(f"[中间件B] Request state: {request.state._state}")
     response = await call_next(request)
     print(f"[中间件B] Response status: {response.status_code}")
     return response
@@ -40,36 +49,48 @@ async def middleware_D(request, call_next):
     return response
 
 
+async def middleware_E(request, call_next):
+    print(f"[中间件E] {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"[中间件E] Response status: {response.status_code}")
+    return response
+
+
 app = (
     Upstar()
     .use(middleware_A)  # 全局中间件
-    .group(
-        "v1",
-        Upstar()
-        .use(middleware_B)  # v1 组中间件
-        .get(
-            "hello", lambda request: JSONResponse({"message": "Hello!"}), middleware_C
-        )  # 路由中间件
-        .get("world", lambda request: JSONResponse({"message": "World!"})),
+    .get(
+        "login",
+        lambda request: JSONResponse(
+            {
+                "msg": "登录成功",
+                "name": request.state.name,
+                "password": request.state.password,
+            }
+        ),
+        middleware_B,
     )
     .group(
-        "v2",
+        "g",
         Upstar()
-        .get("test", lambda request: Response("Test!"))
+        .use(middleware_C)  # v1 组中间件
+        .get("1", lambda request: JSONResponse({"message": "1!"}))
+        .get(
+            "2", lambda request: JSONResponse({"message": "2!"}), middleware_D
+        )  # 路由中间件
         .group(
             "nested",
             Upstar()
-            .use(middleware_D)  # 嵌套组中间件
-            .post("hello", lambda request: Response("Hello!"))
-            .post("world", lambda request: Response("World!")),
-        )
-        .get("world", lambda request: Response("World!")),
+            .use(middleware_E)  # 嵌套组中间件
+            .post("3", lambda request: Response("3!"))
+            .post("4", lambda request: Response("4!")),
+        ),
     )
-    .get("ping", lambda request: JSONResponse({"message": "pong"}))
 )
 
 print_routes(app)
 if __name__ == "__main__":
-    uvicorn.run("demo:app", reload=True, host="0.0.0.0", port=8000)
+    # 在这里面的脚本不会热重载
+    uvicorn.run("demo:app", reload=True, host="0.0.0.0", port=50080)
 
 ```
